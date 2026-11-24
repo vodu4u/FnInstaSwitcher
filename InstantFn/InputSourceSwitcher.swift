@@ -2,8 +2,10 @@ import Carbon
 import Foundation
 import os
 
-/// Finds the user's *actual* English and Russian keyboard input sources and switches
-/// between them with `TISSelectInputSource`. No keystrokes are injected.
+/// Switches to the *next* enabled keyboard input source with `TISSelectInputSource`,
+/// cycling through everything the user enabled in Keyboard Settings, in system order
+/// (EN → RU → ES → EN …). With two sources this is a plain toggle. No keystrokes are
+/// injected.
 ///
 /// Everything here runs on the main thread: recent macOS versions assert when TSM/TIS
 /// is called from a background thread.
@@ -13,14 +15,12 @@ final class InputSourceSwitcher: NSObject {
         let id: String          // e.g. "com.apple.keylayout.US", "com.apple.keylayout.RussianWin"
         let name: String        // localized name, e.g. "U.S.", "Russian – PC"
         let language: String    // primary language code, e.g. "en", "ru"
-        let isLayout: Bool      // keyboard layout (vs. input method mode)
         let ref: TISInputSource
     }
 
-    private(set) var englishCandidates: [Source] = []
-    private(set) var russianCandidates: [Source] = []
-    private(set) var english: Source?
-    private(set) var russian: Source?
+    /// Enabled, selectable keyboard input sources in system order. Rebuilt only when the
+    /// configuration changes, never on the hot path.
+    private(set) var sources: [Source] = []
 
     /// Called after the selected input source changed (by us or by anyone else).
     var onCurrentChanged: (() -> Void)?
@@ -68,36 +68,15 @@ final class InputSourceSwitcher: NSObject {
         guard let list = TISCreateInputSourceList(filter as CFDictionary, false)?
             .takeRetainedValue() as? [TISInputSource] else { return }
 
-        let sources: [Source] = list.compactMap { ref in
+        sources = list.compactMap { ref in
             guard let id: String = Self.property(ref, kTISPropertyInputSourceID) else { return nil }
             let langs: [String] = Self.property(ref, kTISPropertyInputSourceLanguages) ?? []
-            let type: String = Self.property(ref, kTISPropertyInputSourceType) ?? ""
             return Source(id: id,
                           name: Self.property(ref, kTISPropertyLocalizedName) ?? id,
                           language: langs.first ?? "",
-                          isLayout: type == (kTISTypeKeyboardLayout as String),
                           ref: ref)
         }
-        // Prefer plain keyboard layouts over input-method modes, keep system order otherwise.
-        func ranked(_ lang: String) -> [Source] {
-            let m = sources.filter { $0.language == lang || $0.language.hasPrefix(lang + "-") || $0.language.hasPrefix(lang + "_") }
-            return m.filter(\.isLayout) + m.filter { !$0.isLayout }
-        }
-        englishCandidates = ranked("en")
-        russianCandidates = ranked("ru")
-
-        let d = UserDefaults.standard
-        english = englishCandidates.first { $0.id == d.string(forKey: Settings.englishIDKey) } ?? englishCandidates.first
-        russian = russianCandidates.first { $0.id == d.string(forKey: Settings.russianIDKey) } ?? russianCandidates.first
-        log.info("sources reloaded: en=\(self.english?.id ?? "none", privacy: .public) ru=\(self.russian?.id ?? "none", privacy: .public)")
-    }
-
-    func choose(englishID: String) {
-        UserDefaults.standard.set(englishID, forKey: Settings.englishIDKey); reload()
-    }
-
-    func choose(russianID: String) {
-        UserDefaults.standard.set(russianID, forKey: Settings.russianIDKey); reload()
+        log.info("sources reloaded: \(self.sources.map(\.id).joined(separator: ", "), privacy: .public)")
     }
 
     // MARK: Current source
@@ -107,37 +86,41 @@ final class InputSourceSwitcher: NSObject {
         return Self.property(cur, kTISPropertyInputSourceID)
     }
 
-    /// "EN", "RU", or a best-effort short label for any other source.
+    /// Short menu-bar label from the source's language: "EN", "RU", "ES", …
     func shortLabel(for id: String?) -> String {
         guard let id else { return "–" }
-        if id == english?.id { return "EN" }
-        if id == russian?.id { return "RU" }
-        let all = englishCandidates + russianCandidates
-        if let s = all.first(where: { $0.id == id }) { return s.language.prefix(2).uppercased() }
+        if let s = sources.first(where: { $0.id == id }), !s.language.isEmpty {
+            return s.language.prefix(2).uppercased()
+        }
         return String(id.split(separator: ".").last?.prefix(2) ?? "?").uppercased()
     }
 
+    func name(for id: String?) -> String? { sources.first { $0.id == id }?.name }
+
     /// Selects a specific known source (used by the benchmark to restore state).
     func select(id: String) {
-        if let s = (englishCandidates + russianCandidates).first(where: { $0.id == id }) { TISSelectInputSource(s.ref) }
+        if let s = sources.first(where: { $0.id == id }) { TISSelectInputSource(s.ref) }
     }
 
     // MARK: Switching (hot path)
 
-    /// Toggles RU ↔ EN. `detectedAt` is `mach_absolute_time()` from the event tap.
-    /// Reads the live current source each time (≈ sub-ms) instead of a cached value, so
-    /// rapid presses are always computed from the real state: no races, no drift.
-    func toggle(detectedAt: UInt64) {
-        guard let en = english, let ru = russian else {
-            log.error("toggle ignored: English or Russian input source not enabled")
+    /// Selects the next enabled input source. `detectedAt` is `mach_absolute_time()`
+    /// from the event tap. Reads the live current source each time (≈ sub-ms) instead of
+    /// a cached value, so rapid presses are always computed from the real state.
+    func selectNext(detectedAt: UInt64) {
+        guard sources.count >= 2 else {
+            log.error("switch ignored: fewer than two input sources enabled")
             return
         }
-        let target = (currentSourceID() == en.id) ? ru : en
+        let current = currentSourceID()
+        let index = sources.firstIndex { $0.id == current } ?? -1   // unknown → first source
+        let target = sources[(index + 1) % sources.count]
+
         var status = TISSelectInputSource(target.ref)
         if status != noErr {
-            // Stale reference (source removed/re-added). Refresh once and retry.
+            // Stale reference (source removed/re-added). Refresh once and retry by ID.
             reload()
-            if let fresh = (target.language == "ru" ? russian : english) {
+            if let fresh = sources.first(where: { $0.id == target.id }) {
                 status = TISSelectInputSource(fresh.ref)
             }
         }

@@ -13,8 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let enabledItem = NSMenuItem()
     private let currentItem = NSMenuItem()
     private let switchOnFnItem = NSMenuItem()
-    private let englishItem = NSMenuItem()
-    private let russianItem = NSMenuItem()
+    private let cycleItem = NSMenuItem()
     private let loginItem = NSMenuItem()
     private let permissionsItem = NSMenuItem()
     #if DEBUG
@@ -56,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func handleFnTap(detectedAt: UInt64) {
         guard Settings.enabled, Settings.switchOnFn else { return }
         guard !globeConflict else { ignoredForConflict += 1; return }
-        switcher.toggle(detectedAt: detectedAt)
+        switcher.selectNext(detectedAt: detectedAt)
     }
 
     /// Installs or removes the tap so it only exists while it's actually needed.
@@ -130,8 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(currentItem)
         menu.addItem(action(switchOnFnItem, #selector(toggleSwitchOnFn)))
         menu.addItem(.separator())
-        englishItem.submenu = NSMenu(); menu.addItem(englishItem)
-        russianItem.submenu = NSMenu(); menu.addItem(russianItem)
+        cycleItem.submenu = NSMenu(); menu.addItem(cycleItem)
         menu.addItem(.separator())
         menu.addItem(action(loginItem, #selector(toggleLogin)))
         permissionsItem.title = "Permissions Status"
@@ -157,14 +155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         enabledItem.state = Settings.enabled ? .on : .off
 
         let curID = switcher.currentSourceID()
-        currentItem.title = "Current Input Source: \(switcher.shortLabel(for: curID))"
+        let curName = switcher.name(for: curID).map { " (\($0))" } ?? ""
+        currentItem.title = "Current Input Source: \(switcher.shortLabel(for: curID))\(curName)"
 
         switchOnFnItem.title = "Switch on Fn: \(Settings.switchOnFn ? "ON" : "OFF")"
         switchOnFnItem.state = Settings.switchOnFn ? .on : .off
         switchOnFnItem.isEnabled = Settings.enabled
 
-        fillSourceMenu(englishItem, label: "English", chosen: switcher.english, candidates: switcher.englishCandidates, sel: #selector(chooseEnglish(_:)))
-        fillSourceMenu(russianItem, label: "Russian", chosen: switcher.russian, candidates: switcher.russianCandidates, sel: #selector(chooseRussian(_:)))
+        fillCycleMenu(curID: curID)
 
         switch LoginItem.status {
         case .enabled: loginItem.title = "Launch at Login: ON"; loginItem.state = .on
@@ -181,21 +179,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         #endif
     }
 
-    private func fillSourceMenu(_ item: NSMenuItem, label: String, chosen: InputSourceSwitcher.Source?,
-                                candidates: [InputSourceSwitcher.Source], sel: Selector) {
-        item.title = "\(label) source: \(chosen?.name ?? "not found — add it in Keyboard Settings")"
-        let sub = item.submenu!
+    /// Shows the order Fn cycles through. Clicking an entry selects it directly.
+    private func fillCycleMenu(curID: String?) {
+        let srcs = switcher.sources
+        cycleItem.title = srcs.count >= 2
+            ? "Fn cycles: " + srcs.map { switcher.shortLabel(for: $0.id) }.joined(separator: " → ")
+            : "Fn cycles: needs at least two input sources"
+        let sub = cycleItem.submenu!
         sub.removeAllItems()
-        for c in candidates {
-            let i = NSMenuItem(title: "\(c.name)  (\(c.id))", action: sel, keyEquivalent: "")
-            i.target = self; i.representedObject = c.id
-            i.state = (c.id == chosen?.id) ? .on : .off
+        for src in srcs {
+            let i = NSMenuItem(title: "\(switcher.shortLabel(for: src.id))  \(src.name)", action: #selector(selectSource(_:)), keyEquivalent: "")
+            i.target = self; i.representedObject = src.id
+            i.state = (src.id == curID) ? .on : .off
             sub.addItem(i)
         }
-        if candidates.isEmpty {
-            let i = NSMenuItem(title: "Open Keyboard Settings…", action: #selector(openKeyboardSettings), keyEquivalent: "")
-            i.target = self; sub.addItem(i)
-        }
+        sub.addItem(.separator())
+        let note = NSMenuItem(title: "Add, remove or reorder sources in Keyboard Settings", action: nil, keyEquivalent: "")
+        note.isEnabled = false; sub.addItem(note)
+        let open = NSMenuItem(title: "Open Keyboard Settings…", action: #selector(openKeyboardSettings), keyEquivalent: "")
+        open.target = self; sub.addItem(open)
     }
 
     private func fillPermissionsMenu(_ sub: NSMenu) {
@@ -233,8 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func requestInputMonitoring() { Permissions.requestInputMonitoring() }
     @objc private func openInputMonitoringSettings() { Permissions.openInputMonitoringSettings() }
     @objc private func openKeyboardSettings() { GlobeKeySetting.openKeyboardSettings() }
-    @objc private func chooseEnglish(_ s: NSMenuItem) { if let id = s.representedObject as? String { switcher.choose(englishID: id); updateStatusTitle() } }
-    @objc private func chooseRussian(_ s: NSMenuItem) { if let id = s.representedObject as? String { switcher.choose(russianID: id); updateStatusTitle() } }
+    @objc private func selectSource(_ s: NSMenuItem) { if let id = s.representedObject as? String { switcher.select(id: id); updateStatusTitle() } }
     @objc private func quit() { NSApp.terminate(nil) }
 
     @objc private func restoreStandard() {
@@ -258,7 +259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Benchmark (development aid)
 
     /// `InstantFn --benchmark`: exercises the exact production path (background thread
-    /// timestamp → main queue → toggle) 40 times without needing a physical Fn press,
+    /// timestamp → main queue → selectNext) 40 times without needing a physical Fn press,
     /// prints the measured latencies, restores the original input source and quits.
     private func runBenchmark() {
         let original = switcher.currentSourceID()
@@ -277,7 +278,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             i += 1
             DispatchQueue.global(qos: .userInteractive).async {
                 let t0 = mach_absolute_time()
-                DispatchQueue.main.async { self.switcher.toggle(detectedAt: t0) }
+                DispatchQueue.main.async { self.switcher.selectNext(detectedAt: t0) }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { step() }
         }

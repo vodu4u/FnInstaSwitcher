@@ -1,6 +1,7 @@
 # InstantFn
 
-A tiny native menu-bar utility: a short press of **Fn/🌐** switches **RU ↔ EN** immediately,
+A tiny native menu-bar utility: a short press of **Fn/🌐** switches to the **next input source** immediately
+(EN → RU → ES → … → EN, through everything enabled in Keyboard Settings; with two sources it's a toggle),
 using `TISSelectInputSource` directly. No keystrokes are injected and nothing else on the keyboard is touched.
 
 ## Build
@@ -26,8 +27,10 @@ the permission again after each rebuild. For a stable grant, sign with a fixed i
    too, so every press switches twice and nothing seems to happen. InstantFn detects this, **pauses switching**,
    and shows `⚠︎` in the menu bar until you change the setting. InstantFn only *reads* this setting and never changes it.
 2. **Grant Input Monitoring** when prompted (or: Privacy & Security → Input Monitoring → enable InstantFn).
-3. Make sure both an English and a Russian layout are enabled. InstantFn finds them by language
-   (here: `com.apple.keylayout.US` and `com.apple.keylayout.RussianWin`). You can pick different ones in the menu.
+3. Enable the input sources you want in Keyboard Settings → Text Input. InstantFn reads them live
+   (here: `com.apple.keylayout.US` and `com.apple.keylayout.RussianWin`) and cycles in the order macOS
+   reports them, which normally matches the list in Keyboard Settings. The menu shows the order ("Fn cycles: EN → RU").
+   Input methods with several modes (for example Japanese Kana/Romaji) count as one source per enabled mode.
 
 ## How it works (and why it's safe)
 
@@ -133,13 +136,13 @@ menu bar shows no `⚠︎` and that Permissions Status shows everything ✓.
 | 13 | **Stuck modifier** | Hold Fn and Shift, quit InstantFn from Activity Monitor (Force Quit), release both keys. Then type and use Fn+arrows. Also: hold Fn, toggle InstantFn off and on in the menu. | No key or modifier stays logically held (try Shift+letters, Fn+arrows). After relaunch, the first Fn tap works. |
 | 14 | Crash safety | `kill -9 $(pgrep InstantFn)` while typing. | Typing keeps working without interruption. |
 | 15 | Long hold | Hold Fn for 2 s, release. | No switch. |
-| 16 | Source config change | Remove and re-add the Russian layout in Keyboard Settings while InstantFn runs. | Next Fn tap still switches (the menu shows the re-found source). |
+| 16 | Source config change | Add a third layout (e.g. Spanish), then remove and re-add one, while InstantFn runs. | Fn cycles through all of them immediately, and the menu's "Fn cycles" line updates. |
 | 17 | Restore | Menu → Restore Standard macOS Behavior…, set Globe back to Change Input Source. | Fn switches exactly as stock macOS. InstantFn shows as disabled. |
 
 ## Source map
 
 - `InstantFn/FnTapMonitor.swift` — listen-only event tap and Fn tap state machine (the only code that sees events)
-- `InstantFn/InputSourceSwitcher.swift` — finds the EN/RU sources, `TISSelectInputSource`, duplicate detection
+- `InstantFn/InputSourceSwitcher.swift` — enabled sources, next-source `TISSelectInputSource`, duplicate detection
 - `InstantFn/AppDelegate.swift` — menu bar UI, lifecycle, sleep/wake, benchmark
 - `InstantFn/SystemSettings.swift` — settings, Globe-key setting reader, Input Monitoring, `SMAppService`
 - `InstantFn/LatencyStats.swift` — debug latency stats

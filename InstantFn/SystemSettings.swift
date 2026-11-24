@@ -6,8 +6,6 @@ import ServiceManagement
 enum Settings {
     static let enabledKey = "enabled"
     static let switchOnFnKey = "switchOnFn"
-    static let englishIDKey = "englishSourceID"
-    static let russianIDKey = "russianSourceID"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [enabledKey: true, switchOnFnKey: true])
