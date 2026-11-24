@@ -19,7 +19,8 @@ case "$CONFIG" in
 esac
 
 rm -rf "$OUT"
-mkdir -p "$OUT/Contents/MacOS"
+mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources"
+cp InstantFn/AppIcon.icns "$OUT/Contents/Resources/AppIcon.icns"   # regenerate: swift tools/make-icon.swift
 # shellcheck disable=SC2086
 swiftc $FLAGS -swift-version 5 -target "arm64-apple-macos$MIN_OS" \
   -module-name InstantFn -o "$OUT/Contents/MacOS/InstantFn" InstantFn/*.swift

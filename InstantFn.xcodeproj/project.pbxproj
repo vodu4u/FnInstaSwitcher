@@ -12,6 +12,7 @@
 		A1F00000000000000000000A /* InputSourceSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000004 /* InputSourceSwitcher.swift */; };
 		A1F00000000000000000000B /* LatencyStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000005 /* LatencyStats.swift */; };
 		A1F00000000000000000000C /* SystemSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000006 /* SystemSettings.swift */; };
+		A1F0FFFFFFFFFFFFFFFFFF02 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = A1F0FFFFFFFFFFFFFFFFFF01 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		A1F00000000000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1F00000000000000000000E /* InstantFn.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = InstantFn.entitlements; sourceTree = "<group>"; };
 		A1F00000000000000000000F /* InstantFn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = InstantFn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1F0FFFFFFFFFFFFFFFFFF01 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +57,7 @@
 				A1F000000000000000000005 /* LatencyStats.swift */,
 				A1F000000000000000000006 /* SystemSettings.swift */,
 				A1F00000000000000000000D /* Info.plist */,
+				A1F0FFFFFFFFFFFFFFFFFF01 /* AppIcon.icns */,
 				A1F00000000000000000000E /* InstantFn.entitlements */,
 			);
 			path = InstantFn;
@@ -126,6 +129,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1F0FFFFFFFFFFFFFFFFFF02 /* AppIcon.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
