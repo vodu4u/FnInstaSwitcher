@@ -9,6 +9,11 @@
   No delay, no popup, no lost first letter. A tiny native menu-bar app.
 </p>
 
+<p align="center">
+  <a href="https://github.com/vodu4u/FnInstaSwitcher/releases/latest/download/InstantFn.zip"><b>⬇︎ Download InstantFn for macOS</b></a>
+  &nbsp;·&nbsp; macOS 13+ · Apple Silicon &amp; Intel · free &amp; open source
+</p>
+
 ---
 
 macOS can switch input sources with the Fn/Globe key, but there's a noticeable lag, and the first character you type
@@ -28,8 +33,8 @@ Works on macOS 13 Ventura or newer, on Apple Silicon and Intel.
 
 ## Install
 
-1. Download **`InstantFn-x.y.zip`** from [Releases](../../releases/latest), unzip it, and move **InstantFn.app** to
-   **Applications**.
+1. **[Download InstantFn.zip](https://github.com/vodu4u/FnInstaSwitcher/releases/latest/download/InstantFn.zip)** (latest version, under 1 MB), unzip it, and move **InstantFn.app** to
+   **Applications**. Older versions and release notes are on the [Releases](../../releases) page.
 2. Open it. InstantFn isn't notarized by Apple (it's a free hobby project), so the first time macOS shows a warning:
    click **Done**, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
    <details><summary>Or use Terminal</summary>
