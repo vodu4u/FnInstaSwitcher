@@ -1,0 +1,88 @@
+import AppKit
+import CoreGraphics
+import ServiceManagement
+
+/// Persisted user settings.
+enum Settings {
+    static let enabledKey = "enabled"
+    static let switchOnFnKey = "switchOnFn"
+    static let englishIDKey = "englishSourceID"
+    static let russianIDKey = "russianSourceID"
+
+    static func registerDefaults() {
+        UserDefaults.standard.register(defaults: [enabledKey: true, switchOnFnKey: true])
+    }
+    static var enabled: Bool {
+        get { UserDefaults.standard.bool(forKey: enabledKey) }
+        set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+    static var switchOnFn: Bool {
+        get { UserDefaults.standard.bool(forKey: switchOnFnKey) }
+        set { UserDefaults.standard.set(newValue, forKey: switchOnFnKey) }
+    }
+}
+
+/// The macOS setting "Keyboard → Press 🌐 key to". InstantFn only *reads* it.
+///
+/// If it is "Change Input Source", macOS switches too and every Fn press would switch
+/// twice (net: nothing). InstantFn pauses switching in that case and asks the user to
+/// set it to "Do Nothing". To restore standard behavior, set it back.
+enum GlobeKeySetting {
+    // Values as stored by System Settings in com.apple.HIToolbox / AppleFnUsageType.
+    enum Action: Int {
+        case doNothing = 0, changeInputSource = 1, emojiAndSymbols = 2, dictation = 3
+        var title: String {
+            switch self {
+            case .doNothing: "Do Nothing"
+            case .changeInputSource: "Change Input Source"
+            case .emojiAndSymbols: "Show Emoji & Symbols"
+            case .dictation: "Start Dictation"
+            }
+        }
+    }
+
+    /// nil = the key is not set (macOS uses a hardware-dependent default).
+    static func read() -> Action? {
+        let domain = "com.apple.HIToolbox" as CFString
+        CFPreferencesAppSynchronize(domain)
+        guard let raw = CFPreferencesCopyAppValue("AppleFnUsageType" as CFString, domain) as? Int else { return nil }
+        return Action(rawValue: raw)
+    }
+
+    /// True if the system's own Globe action would also switch input sources.
+    static var conflictsWithInstantFn: Bool { read() == .changeInputSource }
+
+    static func openKeyboardSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!)
+    }
+}
+
+/// Input Monitoring is the only permission InstantFn uses.
+enum Permissions {
+    static var inputMonitoringGranted: Bool { CGPreflightListenEventAccess() }
+
+    /// Shows the system prompt the first time; afterwards macOS only allows changing it
+    /// in System Settings, so we open the right pane.
+    static func requestInputMonitoring() {
+        if !CGRequestListenEventAccess() { openInputMonitoringSettings() }
+    }
+
+    static func openInputMonitoringSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!)
+    }
+}
+
+/// Launch at login via `SMAppService` (no helper app, no launchd plist written by us).
+enum LoginItem {
+    static var status: SMAppService.Status { SMAppService.mainApp.status }
+    static var isOn: Bool { status == .enabled }
+
+    static func set(_ on: Bool) {
+        do {
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+        } catch {
+            NSLog("InstantFn: launch-at-login change failed: \(error.localizedDescription)")
+        }
+        if status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
+    }
+}
