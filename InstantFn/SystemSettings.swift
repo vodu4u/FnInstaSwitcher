@@ -5,18 +5,13 @@ import ServiceManagement
 /// Persisted user settings.
 enum Settings {
     static let enabledKey = "enabled"
-    static let switchOnFnKey = "switchOnFn"
 
     static func registerDefaults() {
-        UserDefaults.standard.register(defaults: [enabledKey: true, switchOnFnKey: true])
+        UserDefaults.standard.register(defaults: [enabledKey: true])
     }
     static var enabled: Bool {
         get { UserDefaults.standard.bool(forKey: enabledKey) }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
-    }
-    static var switchOnFn: Bool {
-        get { UserDefaults.standard.bool(forKey: switchOnFnKey) }
-        set { UserDefaults.standard.set(newValue, forKey: switchOnFnKey) }
     }
 }
 

@@ -1,25 +1,9 @@
-// Renders InstantFn's app icon (an Apple-style "fn 🌐" keycap) and builds AppIcon.icns.
+// Renders InstantFn's app icon (blue "fn" on clean white, full-bleed so macOS applies its own icon shape) and builds AppIcon.icns.
 // Usage: swift tools/make-icon.swift   (writes InstantFn/AppIcon.icns and build/icon/AppIcon-1024.png)
 // Everything is drawn with plain CoreGraphics paths: no SF Symbols, no external images.
 import AppKit
 
 let S: CGFloat = 1024
-
-/// Apple-like "squircle" (superellipse), used for the icon body and the keycap.
-func squircle(_ r: CGRect, n: CGFloat = 5) -> CGPath {
-    let p = CGMutablePath()
-    let a = r.width / 2, b = r.height / 2, cx = r.midX, cy = r.midY
-    let steps = 720
-    for i in 0...steps {
-        let t = CGFloat(i) / CGFloat(steps) * 2 * .pi
-        let c = cos(t), s = sin(t)
-        let x = cx + a * (c < 0 ? -1 : 1) * pow(abs(c), 2 / n)
-        let y = cy + b * (s < 0 ? -1 : 1) * pow(abs(s), 2 / n)
-        i == 0 ? p.move(to: CGPoint(x: x, y: y)) : p.addLine(to: CGPoint(x: x, y: y))
-    }
-    p.closeSubpath()
-    return p
-}
 
 func gradient(_ colors: [NSColor], _ locs: [CGFloat]) -> CGGradient {
     CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.displayP3),
@@ -34,61 +18,24 @@ func render() -> NSBitmapImageRep {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let ctx = NSGraphicsContext.current!.cgContext
 
-    // Body: macOS icon grid, 824×824 centered, with a soft drop shadow.
-    let body = CGRect(x: 100, y: 100, width: 824, height: 824)
-    let bodyPath = squircle(body)
+    // Full-bleed white face. macOS 26 applies its own icon mask to full-bleed artwork;
+    // pre-rounded artwork with transparent margins gets put inside a gray frame instead.
+    ctx.drawLinearGradient(gradient([NSColor(white: 1.0, alpha: 1), NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 1)], [0, 1]),
+                           start: CGPoint(x: 0, y: S), end: CGPoint(x: 0, y: 0), options: [])
+
+    // "fn" in blue: text used as a clip mask, filled with a system-blue gradient.
+    let font = NSFont.systemFont(ofSize: 540, weight: .semibold)
+    let line = CTLineCreateWithAttributedString(NSAttributedString(string: "fn", attributes: [.font: font, .kern: -8]))
+    let glyphs = CTLineGetImageBounds(line, ctx)
+    let origin = CGPoint(x: S/2 - glyphs.midX, y: S/2 - glyphs.midY)
     ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -12), blur: 28, color: NSColor.black.withAlphaComponent(0.35).cgColor)
-    ctx.addPath(bodyPath); ctx.setFillColor(NSColor.black.cgColor); ctx.fillPath()
+    ctx.textPosition = origin
+    ctx.setTextDrawingMode(.clip)
+    CTLineDraw(line, ctx)
+    ctx.drawLinearGradient(gradient([NSColor(srgbRed: 0.20, green: 0.56, blue: 1.00, alpha: 1),
+                                     NSColor(srgbRed: 0.00, green: 0.40, blue: 0.95, alpha: 1)], [0, 1]),
+                           start: CGPoint(x: 0, y: origin.y + glyphs.maxY), end: CGPoint(x: 0, y: origin.y + glyphs.minY), options: [])
     ctx.restoreGState()
-
-    ctx.saveGState()
-    ctx.addPath(bodyPath); ctx.clip()
-    ctx.drawLinearGradient(gradient([NSColor(srgbRed: 0.33, green: 0.62, blue: 1.00, alpha: 1),
-                                     NSColor(srgbRed: 0.16, green: 0.36, blue: 0.94, alpha: 1),
-                                     NSColor(srgbRed: 0.24, green: 0.18, blue: 0.78, alpha: 1)], [0, 0.55, 1]),
-                           start: CGPoint(x: 0, y: body.maxY), end: CGPoint(x: 0, y: body.minY), options: [])
-    // Gentle top highlight.
-    ctx.drawRadialGradient(gradient([NSColor.white.withAlphaComponent(0.28), NSColor.white.withAlphaComponent(0)], [0, 1]),
-                           startCenter: CGPoint(x: S/2, y: body.maxY + 40), startRadius: 0,
-                           endCenter: CGPoint(x: S/2, y: body.maxY + 40), endRadius: 560, options: [])
-    ctx.restoreGState()
-
-    // Keycap: cast shadow, side wall, then the top face.
-    let cap = CGRect(x: 262, y: 250, width: 500, height: 500)
-    let capPath = squircle(cap, n: 4.2)
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -26), blur: 46, color: NSColor(srgbRed: 0.05, green: 0.05, blue: 0.3, alpha: 0.55).cgColor)
-    ctx.addPath(squircle(cap.offsetBy(dx: 0, dy: -18), n: 4.2))
-    ctx.setFillColor(NSColor(srgbRed: 0.80, green: 0.82, blue: 0.88, alpha: 1).cgColor); ctx.fillPath()
-    ctx.restoreGState()
-
-    ctx.saveGState()
-    ctx.addPath(capPath); ctx.clip()
-    ctx.drawLinearGradient(gradient([NSColor(white: 1.0, alpha: 1), NSColor(srgbRed: 0.93, green: 0.94, blue: 0.97, alpha: 1)], [0, 1]),
-                           start: CGPoint(x: 0, y: cap.maxY), end: CGPoint(x: 0, y: cap.minY), options: [])
-    ctx.restoreGState()
-    ctx.addPath(capPath); ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.9).cgColor); ctx.setLineWidth(3); ctx.strokePath()
-
-    let ink = NSColor(srgbRed: 0.16, green: 0.17, blue: 0.21, alpha: 1)
-
-    // "fn" label, top-right like on Apple keyboards.
-    let font = NSFont.systemFont(ofSize: 150, weight: .medium)
-    let label = NSAttributedString(string: "fn", attributes: [.font: font, .foregroundColor: ink, .kern: -2])
-    let ls = label.size()
-    label.draw(at: CGPoint(x: cap.maxX - 64 - ls.width, y: cap.maxY - 52 - ls.height))
-
-    // Globe, bottom-left, drawn from circles and arcs.
-    let gc = CGPoint(x: cap.minX + 140, y: cap.minY + 140), gr: CGFloat = 78
-    ctx.setStrokeColor(ink.cgColor); ctx.setLineWidth(11); ctx.setLineCap(.round)
-    ctx.addEllipse(in: CGRect(x: gc.x - gr, y: gc.y - gr, width: 2*gr, height: 2*gr)); ctx.strokePath()
-    ctx.addEllipse(in: CGRect(x: gc.x - gr*0.42, y: gc.y - gr, width: gr*0.84, height: 2*gr)); ctx.strokePath()
-    ctx.move(to: CGPoint(x: gc.x, y: gc.y - gr)); ctx.addLine(to: CGPoint(x: gc.x, y: gc.y + gr)); ctx.strokePath()
-    ctx.move(to: CGPoint(x: gc.x - gr, y: gc.y)); ctx.addLine(to: CGPoint(x: gc.x + gr, y: gc.y)); ctx.strokePath()
-    for dy in [-0.55, 0.55] as [CGFloat] {
-        let y = gc.y + gr * dy, hw = gr * sqrt(1 - dy*dy)
-        ctx.move(to: CGPoint(x: gc.x - hw, y: y)); ctx.addLine(to: CGPoint(x: gc.x + hw, y: y)); ctx.strokePath()
-    }
 
     NSGraphicsContext.restoreGraphicsState()
     return rep

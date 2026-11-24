@@ -32,6 +32,28 @@ the permission again after each rebuild. For a stable grant, sign with a fixed i
    reports them, which normally matches the list in Keyboard Settings. The menu shows the order ("Fn cycles: EN → RU").
    Input methods with several modes (for example Japanese Kana/Romaji) count as one source per enabled mode.
 
+## Menu
+
+```
+⚠︎ Allow Input Monitoring…          ← warnings appear only when something needs fixing
+────────────
+INPUT SOURCES                       ← the order Fn cycles through; ✓ = current, click to select
+✓ U.S.
+  Russian – PC
+────────────
+✓ Switch on Fn                      ← master on/off (removes the event tap when off)
+✓ Launch at Login
+────────────
+Advanced ▸   status, Keyboard / Input Monitoring settings, debug latency, Restore Standard macOS Behavior…
+Quit InstantFn                 ⌘Q
+```
+
+## App icon
+
+`swift tools/make-icon.swift` draws the icon (a blue "fn" on white) with CoreGraphics and writes
+`InstantFn/AppIcon.icns`. The artwork is full-bleed on purpose. macOS 26 applies its own icon shape to full-bleed
+artwork, but it puts pre-rounded icons with transparent margins inside a gray frame.
+
 ## How it works (and why it's safe)
 
 ```
@@ -117,7 +139,7 @@ Resources: about 0% CPU when idle, about 46 MB RSS (mostly shared AppKit pages),
 ## Test plan
 
 Run the **Debug** build so the latency and duplicate counters show in the menu. Before starting, confirm that the
-menu bar shows no `⚠︎` and that Permissions Status shows everything ✓.
+menu bar shows no `⚠︎` and the menu has no warning items at the top.
 
 | # | Test | Steps | Pass criteria |
 |---|---|---|---|
