@@ -5,7 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let monitor = FnTapMonitor()
     private var switcher: InputSourceSwitcher!
     private var statusItem: NSStatusItem!
-    private var globeConflict = false
+    private var globeConflict = false      // system would switch too → switching paused
+    private var globeNotDoNothing = false  // Fn tap also triggers some other system action
     private var tapStartFailed = false
     private var ignoredForConflict = 0
 
@@ -63,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshGlobeConflict() {
         globeConflict = GlobeKeySetting.conflictsWithInstantFn
+        globeNotDoNothing = GlobeKeySetting.needsDoNothing
         updateStatusTitle()
     }
 
@@ -98,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateStatusTitle() {
         guard let button = statusItem?.button else { return }
         let label = switcher.shortLabel(for: switcher.currentSourceID())
-        let problem = globeConflict || tapStartFailed
+        let problem = globeNotDoNothing || tapStartFailed
             || (Settings.enabled && !Permissions.inputMonitoringGranted)
         button.title = problem ? "\(label) ⚠︎" : label
         button.appearsDisabled = !Settings.enabled
@@ -177,7 +179,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else if tapStartFailed {
             p.append(("Reopen InstantFn to Finish Setup", #selector(quit)))
         }
-        if globeConflict {
+        if globeNotDoNothing {
             p.append(("Set “Press 🌐 key to” to “Do Nothing”…", #selector(openKeyboardSettings)))
         }
         return p

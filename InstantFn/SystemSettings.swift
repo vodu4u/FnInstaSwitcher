@@ -45,6 +45,11 @@ enum GlobeKeySetting {
     /// True if the system's own Globe action would also switch input sources.
     static var conflictsWithInstantFn: Bool { read() == .changeInputSource }
 
+    /// True if a plain Fn tap also does something else (emoji picker, dictation, or an
+    /// unset value whose default depends on the Mac). InstantFn still switches, but
+    /// asks the user to choose "Do Nothing".
+    static var needsDoNothing: Bool { read() != .doNothing }
+
     static func openKeyboardSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!)
     }
