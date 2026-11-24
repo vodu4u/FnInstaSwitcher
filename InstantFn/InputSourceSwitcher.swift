@@ -12,8 +12,8 @@ import os
 @MainActor
 final class InputSourceSwitcher: NSObject {
     struct Source {
-        let id: String          // e.g. "com.apple.keylayout.US", "com.apple.keylayout.RussianWin"
-        let name: String        // localized name, e.g. "U.S.", "Russian – PC"
+        let id: String          // e.g. "com.apple.keylayout.US", "com.apple.keylayout.Russian"
+        let name: String        // localized name, e.g. "U.S.", "Russian"
         let language: String    // primary language code, e.g. "en", "ru"
         let ref: TISInputSource
     }

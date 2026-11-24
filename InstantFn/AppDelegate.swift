@@ -115,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     //   ─────
     //   INPUT SOURCES                 ← the order Fn cycles through; ✓ = current
     //   ✓ U.S.
-    //     Russian – PC
+    //     Russian
     //   ─────
     //   ✓ Switch on Fn                ← master on/off
     //   ✓ Launch at Login

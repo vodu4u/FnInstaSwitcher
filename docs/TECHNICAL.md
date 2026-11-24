@@ -25,13 +25,13 @@ the permission again after each rebuild. For a stable grant, sign with a fixed i
 ## One-time setup
 
 1. **System Settings → Keyboard → "Press 🌐 key to" → Do Nothing.**
-   If it is set to *Change Input Source* (as it is on this Mac right now: `AppleFnUsageType = 1`), macOS switches
+   If it is set to *Change Input Source*, macOS switches
    too, so every press switches twice and nothing seems to happen. InstantFn detects this, **pauses switching**,
    and shows `⚠︎` in the menu bar until you change the setting. InstantFn only *reads* this setting and never changes it.
 2. **Grant Input Monitoring** when prompted (or: Privacy & Security → Input Monitoring → enable InstantFn).
 3. Enable the input sources you want in Keyboard Settings → Text Input. InstantFn reads them live
-   (here: `com.apple.keylayout.US` and `com.apple.keylayout.RussianWin`) and cycles in the order macOS
-   reports them, which normally matches the list in Keyboard Settings. The menu shows the order ("Fn cycles: EN → RU").
+   (for example `com.apple.keylayout.US` and `com.apple.keylayout.Russian`) and cycles in the order macOS
+   reports them, which normally matches the list in Keyboard Settings. The menu's Input Sources section shows the order.
    Input methods with several modes (for example Japanese Kana/Romaji) count as one source per enabled mode.
 
 ## Menu
@@ -41,7 +41,7 @@ the permission again after each rebuild. For a stable grant, sign with a fixed i
 ────────────
 INPUT SOURCES                       ← the order Fn cycles through; ✓ = current, click to select
 ✓ U.S.
-  Russian – PC
+  Russian
 ────────────
 ✓ Switch on Fn                      ← master on/off (removes the event tap when off)
 ✓ Launch at Login
@@ -108,7 +108,7 @@ working. If it quits or crashes, the system removes the tap. InstantFn never pos
 Menu → **Restore Standard macOS Behavior…** removes the tap and opens Keyboard Settings. Set "Press 🌐 key to" back to
 *Change Input Source*. Optionally turn off Launch at Login, remove InstantFn from Input Monitoring, and delete the app.
 
-## Measured latency (developer's Mac, macOS 26.6 25G72, Apple Silicon)
+## Measured latency (Apple Silicon Mac, macOS 26)
 
 From `InstantFn --benchmark`, which runs the same path a Fn tap takes (background-thread timestamp → main queue →
 `TISSelectInputSource`), 40 toggles per run, 3 runs (2 Release, 1 Debug):
@@ -152,7 +152,7 @@ menu bar shows no `⚠︎` and the menu has no warning items at the top.
 | 5 | System shortcuts | Mission Control (F3 / Ctrl+↑), App Exposé, Cmd+Tab, Cmd+Space, Ctrl+←/→ between Spaces, screenshots (Cmd+Shift+4). | All behave normally. No switch unless plain Fn was tapped. |
 | 6 | Full-screen apps | Switch with Fn inside a full-screen Chrome / VS Code window. | Switch works, the app stays focused and full-screen, no Space change. |
 | 7 | Multiple Spaces | Different apps on 3 Spaces; switch Spaces, tap Fn in each. | Works in every Space. Focus is unchanged. |
-| 8 | Roblox Studio | Script editor, Explorer rename field, and the Play-mode chat box: Fn then type. | Correct script immediately. Fn tap doesn't move the camera or trigger Studio shortcuts. |
+| 8 | Game / 3D editor | Script editor, rename fields, in-game chat: Fn then type. | Correct script immediately. Fn tap doesn't trigger the editor's shortcuts. |
 | 9 | Sleep / wake | Hold Fn, close the lid, wake while released. Then tap Fn normally. Repeat with a Bluetooth keyboard off and on. | No stray switch on wake. The first normal tap works. |
 | 10 | Login startup | Enable Launch at Login, log out and in (or reboot). | One InstantFn instance (`pgrep -l InstantFn`). It works without opening anything. |
 | 11 | Terminal / secure input | Terminal with Secure Keyboard Entry off, then on. A browser password field. | Document whether Fn works while secure input is on. Nothing breaks either way. |
@@ -160,7 +160,7 @@ menu bar shows no `⚠︎` and the menu has no warning items at the top.
 | 13 | **Stuck modifier** | Hold Fn and Shift, quit InstantFn from Activity Monitor (Force Quit), release both keys. Then type and use Fn+arrows. Also: hold Fn, toggle InstantFn off and on in the menu. | No key or modifier stays logically held (try Shift+letters, Fn+arrows). After relaunch, the first Fn tap works. |
 | 14 | Crash safety | `kill -9 $(pgrep InstantFn)` while typing. | Typing keeps working without interruption. |
 | 15 | Long hold | Hold Fn for 2 s, release. | No switch. |
-| 16 | Source config change | Add a third layout (e.g. Spanish), then remove and re-add one, while InstantFn runs. | Fn cycles through all of them immediately, and the menu's "Fn cycles" line updates. |
+| 16 | Source config change | Add a third layout (e.g. Spanish), then remove and re-add one, while InstantFn runs. | Fn cycles through all of them immediately, and the menu's Input Sources list updates. |
 | 17 | Restore | Menu → Restore Standard macOS Behavior…, set Globe back to Change Input Source. | Fn switches exactly as stock macOS. InstantFn shows as disabled. |
 
 ## Source map

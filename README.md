@@ -51,7 +51,7 @@ That's it: tap **Fn** to switch.
 ```
 INPUT SOURCES          ← the order Fn cycles through (✓ = current, click to select)
 ✓ U.S.
-  Russian – PC
+  Russian
 ───────────
 ✓ Switch on Fn         ← turn InstantFn on/off
 ✓ Launch at Login
@@ -88,8 +88,8 @@ as an Fn+key shortcut and leaves it alone. Release Fn first.
 **After updating, Fn stopped working.** Unsigned builds get a new code signature with every version, so macOS asks for
 Input Monitoring again. Remove InstantFn from the Input Monitoring list, then allow it again.
 
-**Does it work in games and secure fields?** It works in normal apps (browsers, editors, Terminal, Roblox Studio and so
-on). While *Secure Keyboard Entry* is on (password fields, or the Terminal option of that name), macOS hides keyboard
+**Does it work in games and secure fields?** It works in normal apps (browsers, editors, Terminal, IDEs, game editors and
+so on). While *Secure Keyboard Entry* is on (password fields, or the Terminal option of that name), macOS hides keyboard
 events from all apps, so InstantFn may not see Fn there.
 
 ## Build from source
