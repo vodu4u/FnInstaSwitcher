@@ -45,6 +45,8 @@ INPUT SOURCES                       ← the order Fn cycles through; ✓ = curre
 ────────────
 ✓ Switch on Fn                      ← master on/off (removes the event tap when off)
 ✓ Launch at Login
+  Custom Language Indicator         ← opt-in; asks for Accessibility only when turned on
+  Hide macOS Language Indicator     ← alternative without Accessibility (the two exclude each other)
 ────────────
 Advanced ▸   status, Keyboard / Input Monitoring settings, debug latency, Restore Standard macOS Behavior…
 Quit InstantFn                 ⌘Q
@@ -93,9 +95,9 @@ HID → WindowServer ──(copy)──► listen-only CGEventTap on its own thr
 | Permission | Used? | Why |
 |---|---|---|
 | **Input Monitoring** | Yes | Required by macOS for any `CGEventTap` that observes keyboard events. InstantFn needs to see Fn press/release, and whether another key or modifier was pressed in between (to keep Fn+key combos untouched). Only event *type*, *modifier flags* and the keycode of *modifier* events are read. Characters are never read, logged or stored. |
-| Accessibility | **No** | Needed only to post or modify events. InstantFn's tap is **listen-only**: it cannot block, delay, change or inject input. |
+| Accessibility | **Only if you turn on Custom Language Indicator** (off by default) | Used only to find where the text cursor is: the focused element's selected range and the on-screen bounds of that range (`AXBoundsForRange`, or `AXBoundsForTextMarkerRange` in WebKit/Chromium). The text itself is never read. In Electron apps InstantFn sets `AXManualAccessibility` once so they expose the caret. Events are never posted: the tap stays **listen-only**. |
 | Network | No | No networking code at all. No telemetry. |
-| Root / SIP / system files | No | Nothing outside the app's own `UserDefaults` and a lock file in `~/Library/Caches` is written. |
+| Root / SIP / system files | No | Nothing outside the app's own `UserDefaults` and a lock file in `~/Library/Caches` is written, except the per-user `TSMLanguageIndicatorEnabled` preference if you choose **Hide macOS Language Indicator**. |
 
 The app is not sandboxed: it needs to read `com.apple.HIToolbox`'s `AppleFnUsageType` to warn you about double
 switching. It is built with the Hardened Runtime and has an empty entitlements file.
@@ -132,9 +134,17 @@ Resources: about 0% CPU when idle, about 46 MB RSS (mostly shared AppKit pages),
   while it's on. Whether Fn `flagsChanged` still arrives in that mode is untested. See test 11.
 - **Fn + letter rollover in fast typing:** if a letter is pressed before Fn is released, the press counts as a combo
   and doesn't switch. This is intentional: Fn+letter are system shortcuts on macOS 15+.
-- macOS may show its small input-source indicator near the text cursor on *any* source change, including programmatic
-  ones. That's system UI, not InstantFn. If you want it gone, run this yourself (untested here, may need a logout):
-  `defaults write kCFPreferencesAnyApplication TSMLanguageIndicatorEnabled 0`
+- **macOS language bubble shows the previous language.** On macOS 14+ the focused app draws a bubble under the caret
+  about 25 ms after any source change. When another process switches (as InstantFn does), it shows the *previous*
+  language. Selecting the source a second time doesn't fix it (measured). **Custom Language Indicator** fixes this:
+  InstantFn draws its own pill at the same spot, slightly larger (32×24 pt vs ~30×23 pt), and keeps it on top until
+  the system bubble's window is gone. It finds that window by reading window *bounds* only
+  (`CGWindowListCopyWindowInfo`; no screen capture, no extra permission). The system window is the pill plus an even
+  shadow margin, centred on the caret's x and about 33 pt below the caret's top.
+  **Hide macOS Language Indicator** is the no-Accessibility alternative: it writes the per-user preference
+  `TSMLanguageIndicatorEnabled = false` (immediate, no admin). macOS then shows an older small grey label
+  (TextInputSwitcher) with the correct language; no per-user setting turns that one off. The two options exclude each
+  other: the custom pill covers the macOS bubble, so with the bubble hidden you'd see the pill *and* the grey label.
 - Caps Lock: InstantFn ignores it completely. The separate macOS option "Use Caps Lock to switch to and from ABC" is
   yours to keep or turn off.
 
@@ -161,6 +171,7 @@ menu bar shows no `⚠︎` and the menu has no warning items at the top.
 | 14 | Crash safety | `kill -9 $(pgrep InstantFn)` while typing. | Typing keeps working without interruption. |
 | 15 | Long hold | Hold Fn for 2 s, release. | No switch. |
 | 16 | Source config change | Add a third layout (e.g. Spanish), then remove and re-add one, while InstantFn runs. | Fn cycles through all of them immediately, and the menu's Input Sources list updates. |
+| 18 | Custom Language Indicator | Menu → Custom Language Indicator, allow Accessibility. Tap Fn in Notes, Safari, Chrome, an Electron app, Terminal. | Pill under the caret with the new language, covering the macOS bubble with no edges visible, no first-frame jump. |
 | 17 | Restore | Menu → Restore Standard macOS Behavior…, set Globe back to Change Input Source. | Fn switches exactly as stock macOS. InstantFn shows as disabled. |
 
 ## Source map
@@ -168,6 +179,7 @@ menu bar shows no `⚠︎` and the menu has no warning items at the top.
 - `InstantFn/FnTapMonitor.swift` — listen-only event tap and Fn tap state machine (the only code that sees events)
 - `InstantFn/InputSourceSwitcher.swift` — enabled sources, next-source `TISSelectInputSource`, duplicate detection
 - `InstantFn/AppDelegate.swift` — menu bar UI, lifecycle, sleep/wake, benchmark
-- `InstantFn/SystemSettings.swift` — settings, Globe-key setting reader, Input Monitoring, `SMAppService`
+- `InstantFn/SystemSettings.swift` — settings, Globe-key setting reader, macOS language-bubble preference, Input Monitoring, `SMAppService`
+- `InstantFn/CursorIndicator.swift` — optional custom language bubble: caret lookup via Accessibility, overlay panel
 - `InstantFn/LatencyStats.swift` — debug latency stats
 - `InstantFn/main.swift` — single-instance lock (`flock`), no Dock icon

@@ -107,10 +107,12 @@ final class InputSourceSwitcher: NSObject {
     /// Selects the next enabled input source. `detectedAt` is `mach_absolute_time()`
     /// from the event tap. Reads the live current source each time (≈ sub-ms) instead of
     /// a cached value, so rapid presses are always computed from the real state.
-    func selectNext(detectedAt: UInt64) {
+    /// Returns the ID of the newly selected source, or nil if nothing was switched.
+    @discardableResult
+    func selectNext(detectedAt: UInt64) -> String? {
         guard sources.count >= 2 else {
             log.error("switch ignored: fewer than two input sources enabled")
-            return
+            return nil
         }
         let current = currentSourceID()
         let index = sources.firstIndex { $0.id == current } ?? -1   // unknown → first source
@@ -128,7 +130,7 @@ final class InputSourceSwitcher: NSObject {
 
         guard status == noErr else {
             log.error("TISSelectInputSource failed: \(status)")
-            return
+            return nil
         }
         stats.recordSelect(ns: Ticks.toNs(now &- detectedAt))
         pending = (target.id, detectedAt)
@@ -137,6 +139,7 @@ final class InputSourceSwitcher: NSObject {
             noteDuplicate()
         }
         onCurrentChanged?()
+        return target.id
     }
 
     @objc private func selectedSourceDidChange() {

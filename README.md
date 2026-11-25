@@ -60,6 +60,8 @@ INPUT SOURCES          ← the order Fn cycles through (✓ = current, click to 
 ───────────
 ✓ Switch on Fn         ← turn InstantFn on/off
 ✓ Launch at Login
+  Custom Language Indicator  ← optional: correct language bubble at the text cursor
+  Hide macOS Language Indicator  ← or: just hide the macOS bubble (no extra permission)
 ───────────
 Advanced ▸             ← permission status, settings shortcuts, restore defaults
 Quit InstantFn
@@ -78,7 +80,7 @@ only to see:
 
 It never reads characters, never stores anything, and uses a *listen-only* event tap that cannot block, delay or
 change your input. If InstantFn crashes or quits, the keyboard just keeps working. **Accessibility access is not
-needed.** All of the code is in [`InstantFn/`](InstantFn): about 800 lines of Swift, with no dependencies.
+needed** unless you turn on the optional Custom Language Indicator (see FAQ). All of the code is in [`InstantFn/`](InstantFn): about 1,100 lines of Swift, with no dependencies.
 
 ## Uninstall / restore macOS behavior
 
@@ -92,6 +94,13 @@ as an Fn+key shortcut and leaves it alone. Release Fn first.
 
 **After updating, Fn stopped working.** Unsigned builds get a new code signature with every version, so macOS asks for
 Input Monitoring again. Remove InstantFn from the Input Monitoring list, then allow it again.
+
+**The little language bubble next to the text cursor shows the wrong language.** This is a macOS limitation: when
+another app switches the input source, the bubble often shows the *previous* language, even though typing already uses
+the new one. Turn on **Custom Language Indicator** in the menu: InstantFn then draws its own bubble with the correct
+language exactly over the macOS one. It's off by default because it needs **Accessibility**, used only to find where
+the text cursor is (InstantFn never reads the text). If you'd rather not grant it, choose **Hide macOS Language
+Indicator** instead; macOS then shows only a small grey label with the correct language. Only one of the two can be on.
 
 **Does it work in games and secure fields?** It works in normal apps (browsers, editors, Terminal, IDEs, game editors and
 so on). While *Secure Keyboard Entry* is on (password fields, or the Terminal option of that name), macOS hides keyboard

@@ -11,6 +11,7 @@
 		A1F000000000000000000009 /* FnTapMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000003 /* FnTapMonitor.swift */; };
 		A1F00000000000000000000A /* InputSourceSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000004 /* InputSourceSwitcher.swift */; };
 		A1F00000000000000000000B /* LatencyStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000005 /* LatencyStats.swift */; };
+		A1F0000000000000000000C1 /* CursorIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0000000000000000000C0 /* CursorIndicator.swift */; };
 		A1F00000000000000000000C /* SystemSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F000000000000000000006 /* SystemSettings.swift */; };
 		A1F0FFFFFFFFFFFFFFFFFF02 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = A1F0FFFFFFFFFFFFFFFFFF01 /* AppIcon.icns */; };
 /* End PBXBuildFile section */
@@ -21,6 +22,7 @@
 		A1F000000000000000000003 /* FnTapMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FnTapMonitor.swift; sourceTree = "<group>"; };
 		A1F000000000000000000004 /* InputSourceSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSourceSwitcher.swift; sourceTree = "<group>"; };
 		A1F000000000000000000005 /* LatencyStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyStats.swift; sourceTree = "<group>"; };
+		A1F0000000000000000000C0 /* CursorIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorIndicator.swift; sourceTree = "<group>"; };
 		A1F000000000000000000006 /* SystemSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettings.swift; sourceTree = "<group>"; };
 		A1F00000000000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1F00000000000000000000E /* InstantFn.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = InstantFn.entitlements; sourceTree = "<group>"; };
@@ -55,6 +57,7 @@
 				A1F000000000000000000003 /* FnTapMonitor.swift */,
 				A1F000000000000000000004 /* InputSourceSwitcher.swift */,
 				A1F000000000000000000005 /* LatencyStats.swift */,
+				A1F0000000000000000000C0 /* CursorIndicator.swift */,
 				A1F000000000000000000006 /* SystemSettings.swift */,
 				A1F00000000000000000000D /* Info.plist */,
 				A1F0FFFFFFFFFFFFFFFFFF01 /* AppIcon.icns */,
@@ -145,6 +148,7 @@
 				A1F000000000000000000009 /* FnTapMonitor.swift in Sources */,
 				A1F00000000000000000000A /* InputSourceSwitcher.swift in Sources */,
 				A1F00000000000000000000B /* LatencyStats.swift in Sources */,
+				A1F0000000000000000000C1 /* CursorIndicator.swift in Sources */,
 				A1F00000000000000000000C /* SystemSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -194,13 +198,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InstantFn/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.vodu4u.InstantFn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -213,13 +217,13 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InstantFn/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.vodu4u.InstantFn;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

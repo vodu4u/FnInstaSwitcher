@@ -5,9 +5,15 @@ import ServiceManagement
 /// Persisted user settings.
 enum Settings {
     static let enabledKey = "enabled"
+    static let cursorIndicatorKey = "cursorIndicator"
 
     static func registerDefaults() {
-        UserDefaults.standard.register(defaults: [enabledKey: true])
+        UserDefaults.standard.register(defaults: [enabledKey: true, cursorIndicatorKey: false])
+    }
+    /// Opt-in: show InstantFn's own language bubble at the text cursor (needs Accessibility).
+    static var cursorIndicator: Bool {
+        get { UserDefaults.standard.bool(forKey: cursorIndicatorKey) }
+        set { UserDefaults.standard.set(newValue, forKey: cursorIndicatorKey) }
     }
     static var enabled: Bool {
         get { UserDefaults.standard.bool(forKey: enabledKey) }
@@ -52,6 +58,25 @@ enum GlobeKeySetting {
 
     static func openKeyboardSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!)
+    }
+}
+
+/// macOS's own language bubble at the text cursor: the per-user global preference
+/// `TSMLanguageIndicatorEnabled` (absent = on). Takes effect immediately, no admin rights.
+/// When it's off, macOS still shows a small grey label for programmatic switches.
+enum SystemLanguageIndicator {
+    private static let key = "TSMLanguageIndicatorEnabled" as CFString
+
+    static var isHidden: Bool {
+        CFPreferencesAppSynchronize(kCFPreferencesAnyApplication)
+        return (CFPreferencesCopyAppValue(key, kCFPreferencesAnyApplication) as? Bool) == false
+    }
+
+    /// Hiding writes `false`; showing removes the key, i.e. back to the macOS default.
+    static func setHidden(_ hidden: Bool) {
+        CFPreferencesSetValue(key, hidden ? kCFBooleanFalse : nil,
+                              kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
+        CFPreferencesSynchronize(kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
     }
 }
 

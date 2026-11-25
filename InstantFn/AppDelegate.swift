@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let monitor = FnTapMonitor()
     private var switcher: InputSourceSwitcher!
+    private lazy var cursorIndicator = CursorIndicator()
     private var statusItem: NSStatusItem!
     private var globeConflict = false      // system would switch too → switching paused
     private var globeNotDoNothing = false  // Fn tap also triggers some other system action
@@ -47,7 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func handleFnTap(detectedAt: UInt64) {
         guard Settings.enabled else { return }
         guard !globeConflict else { ignoredForConflict += 1; return }
-        switcher.selectNext(detectedAt: detectedAt)
+        guard let id = switcher.selectNext(detectedAt: detectedAt) else { return }
+        // After the switch, never before it: the bubble must not delay typing.
+        if Settings.cursorIndicator { cursorIndicator.show(label: switcher.shortLabel(for: id)) }
     }
 
     /// Installs or removes the tap so it only exists while it's actually needed.
@@ -102,6 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let label = switcher.shortLabel(for: switcher.currentSourceID())
         let problem = globeNotDoNothing || tapStartFailed
             || (Settings.enabled && !Permissions.inputMonitoringGranted)
+            || (Settings.enabled && Settings.cursorIndicator && !CursorIndicator.isTrusted)
         button.title = problem ? "\(label) ⚠︎" : label
         button.appearsDisabled = !Settings.enabled
         button.toolTip = problem ? "InstantFn needs attention — open the menu" : "InstantFn"
@@ -119,6 +123,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     //   ─────
     //   ✓ Switch on Fn                ← master on/off
     //   ✓ Launch at Login
+    //     Custom Language Indicator   ← opt-in bubble at the caret (asks for Accessibility only when turned on)
+    //     Hide macOS Language Indicator ← alternative without Accessibility; the two are mutually exclusive
     //   ─────
     //   Advanced ▸                    ← status details, settings shortcuts, restore
     //   Quit InstantFn          ⌘Q
@@ -161,6 +167,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                          #selector(toggleLogin))
         login.state = LoginItem.status == .enabled ? .on : (LoginItem.status == .requiresApproval ? .mixed : .off)
         menu.addItem(login)
+        let custom = item("Custom Language Indicator", #selector(toggleCursorIndicator))
+        custom.state = Settings.cursorIndicator ? .on : .off
+        custom.toolTip = "Draws InstantFn's own language bubble exactly over the macOS one under the text cursor, which can show the previous language. Needs Accessibility, used only to find where the text cursor is; InstantFn never reads the text."
+        menu.addItem(custom)
+        let hide = item("Hide macOS Language Indicator", #selector(toggleSystemIndicator))
+        hide.state = SystemLanguageIndicator.isHidden ? .on : .off
+        hide.toolTip = "Turns off the macOS language bubble at the text cursor, which can show the previous language. No extra permission. macOS may still show a small grey label instead."
+        menu.addItem(hide)
         menu.addItem(.separator())
 
         // 4. Advanced + Quit.
@@ -179,6 +193,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else if tapStartFailed {
             p.append(("Reopen InstantFn to Finish Setup", #selector(quit)))
         }
+        if Settings.cursorIndicator && !CursorIndicator.isTrusted {
+            p.append(("Allow Accessibility for Custom Language Indicator…", #selector(requestAccessibility)))
+        }
         if globeNotDoNothing {
             p.append(("Set “Press 🌐 key to” to “Do Nothing”…", #selector(openKeyboardSettings)))
         }
@@ -193,6 +210,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let im = info(Permissions.inputMonitoringGranted ? "Input Monitoring: Allowed" : "Input Monitoring: Not Allowed")
         im.toolTip = "Needed only to see Fn press and release. InstantFn never reads characters, never stores keystrokes, and cannot block or change input (listen-only). Accessibility is not used."
         sub.addItem(im)
+        if Settings.cursorIndicator {
+            let ax = info(CursorIndicator.isTrusted ? "Accessibility: Allowed" : "Accessibility: Not Allowed")
+            ax.toolTip = "Used only by the Custom Language Indicator, to find where the text cursor is. InstantFn never reads the text."
+            sub.addItem(ax)
+        }
         sub.addItem(info("🌐 Key Action: \(GlobeKeySetting.read()?.title ?? "System Default")"))
         sub.addItem(.separator())
         sub.addItem(item("Keyboard Settings…", #selector(openKeyboardSettings)))
@@ -229,6 +251,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Actions
 
     @objc private func toggleEnabled() { Settings.enabled.toggle(); applyState() }
+    // Custom indicator draws *over* the macOS bubble, so the two options exclude each other:
+    // with the macOS bubble hidden, macOS shows a grey label instead and there'd be two.
+    @objc private func toggleCursorIndicator() {
+        Settings.cursorIndicator.toggle()
+        if Settings.cursorIndicator { SystemLanguageIndicator.setHidden(false) }
+        if Settings.cursorIndicator && !CursorIndicator.isTrusted { CursorIndicator.requestAccess() }
+        applyState()
+    }
+    @objc private func toggleSystemIndicator() {
+        let hide = !SystemLanguageIndicator.isHidden
+        SystemLanguageIndicator.setHidden(hide)
+        if hide && Settings.cursorIndicator { Settings.cursorIndicator = false; applyState() }
+    }
+    @objc private func requestAccessibility() { CursorIndicator.requestAccess() }
     @objc private func toggleLogin() { LoginItem.set(!LoginItem.isOn) }
     @objc private func requestInputMonitoring() { Permissions.requestInputMonitoring() }
     @objc private func openInputMonitoringSettings() { Permissions.openInputMonitoringSettings() }
@@ -238,6 +274,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func restoreStandard() {
         Settings.enabled = false
+        Settings.cursorIndicator = false
+        SystemLanguageIndicator.setHidden(false)
         applyState()
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
@@ -247,7 +285,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         To get the standard macOS Globe behavior back, open Keyboard Settings and set \
         “Press 🌐 key to” to “Change Input Source”. You can also turn off Launch at Login \
-        and remove InstantFn from Privacy & Security → Input Monitoring.
+        and remove InstantFn from Privacy & Security → Input Monitoring (and Accessibility, \
+        if you allowed it for the Custom Language Indicator).
         """
         alert.addButton(withTitle: "Open Keyboard Settings")
         alert.addButton(withTitle: "Done")
